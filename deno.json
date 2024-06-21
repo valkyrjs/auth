@@ -1,0 +1,34 @@
+{
+  "name": "@valkyr/auth",
+  "version": "1.0.0-rc.1",
+  "exports": {
+    "./sqlite": "./stores/sqlite.ts"
+  },
+  "imports": {
+    "~libraries/": "./libraries/",
+    "std/": "https://deno.land/std@0.224.0/",
+    "dot-prop": "npm:dot-prop@9.0.0",
+    "drizzle-orm": "npm:drizzle-orm@0.30.10",
+    "nanoid": "npm:nanoid@5.0.7",
+    "sqlite": "jsr:@db/sqlite@0.11",
+    "zod": "https://deno.land/x/zod@v3.23.8/mod.ts"
+  },
+  "exclude": [
+    ".vscode"
+  ],
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-explicit-any",
+        "require-await"
+      ]
+    }
+  },
+  "fmt": {
+    "lineWidth": 120
+  },
+  "tasks": {
+    "test": "deno test --allow-all --unstable-ffi",
+    "lint": "deno lint --fix"
+  }
+}

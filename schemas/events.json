@@ -1,0 +1,29 @@
+[
+  {
+    "type": "AccountCreated",
+    "data": {
+      "email": {
+        "type": "string"
+      },
+      "password": {
+        "type": "string"
+      }
+    }
+  },
+  {
+    "type": "AccountEmailSet",
+    "data": {
+      "email": {
+        "type": "string"
+      }
+    }
+  },
+  {
+    "type": "AccountPasswordSet",
+    "data": {
+      "password": {
+        "type": "string"
+      }
+    }
+  }
+]
