@@ -1,7 +1,8 @@
 {
   "name": "@valkyr/auth",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0-rc.3",
   "exports": {
+    ".": "./mod.ts",
     "./sqlite": "./stores/sqlite.ts"
   },
   "imports": {
