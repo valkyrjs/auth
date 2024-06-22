@@ -158,7 +158,8 @@
       "jsr:@db/sqlite@0.11",
       "npm:dot-prop@9.0.0",
       "npm:drizzle-orm@0.30.10",
-      "npm:nanoid@5.0.7"
+      "npm:nanoid@5.0.7",
+      "npm:zod@3.23.8"
     ]
   }
 }

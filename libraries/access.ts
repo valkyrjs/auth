@@ -1,7 +1,7 @@
 import { Permission } from "./permission.ts";
 import type { Role } from "./role.ts";
 import type { GetActionData, Permissions } from "./types.ts";
-import { ActionValidator } from "~libraries/types.ts";
+import type { ActionValidator } from "~libraries/types.ts";
 
 export class Access<TPermissions extends Permissions> {
   constructor(

@@ -23,11 +23,11 @@ export class Role<TPermissions extends Permissions> {
    |--------------------------------------------------------------------------------
    */
 
-  get grant() {
+  get grant(): RolePermission<TPermissions>["grant"] {
     return new RolePermission<TPermissions>(this, this.#repository).grant;
   }
 
-  get deny() {
+  get deny(): RolePermission<TPermissions>["deny"] {
     return new RolePermission<TPermissions>(this, this.#repository).deny;
   }
 
@@ -51,7 +51,7 @@ export class Role<TPermissions extends Permissions> {
    |--------------------------------------------------------------------------------
    */
 
-  update({ name, permissions }: UpdatePayload<TPermissions>) {
+  update({ name, permissions }: UpdatePayload<TPermissions>): Role<TPermissions> {
     return new Role({
       roleId: this.roleId,
       tenantId: this.tenantId,

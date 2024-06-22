@@ -1,5 +1,4 @@
 import { Database } from "sqlite";
-import { z } from "zod";
 
 import { assertArrayIncludes, assertEquals, assertObjectMatch } from "std/assert/mod.ts";
 import { beforeEach, describe, it } from "std/testing/bdd.ts";

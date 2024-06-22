@@ -30,7 +30,7 @@ export class Permission {
     }
   }
 
-  filter<Data extends Record<string, unknown>>(data: Data | Data[]) {
+  filter<Data extends Record<string, unknown>>(data: Data | Data[]): Data | Data[] {
     const attributes = this.attributes;
     if (attributes === undefined) {
       return data;

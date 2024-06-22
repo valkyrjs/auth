@@ -1,6 +1,6 @@
 import type { TypeOf, ZodTypeAny } from "zod";
 
-import { Role } from "~libraries/role.ts";
+import type { Role } from "~libraries/role.ts";
 
 /*
  |--------------------------------------------------------------------------------
