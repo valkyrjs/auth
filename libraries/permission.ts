@@ -22,8 +22,8 @@ export class Permission {
 
   constructor(response: Response) {
     this.granted = response.granted === true;
-    if (response.granted === true && response.attributes) {
-      this.attributes = response.attributes;
+    if (response.granted === true && response.filter) {
+      this.attributes = response.filter;
     }
     if (response.granted === false && response.message) {
       this.message = response.message;
@@ -60,7 +60,7 @@ type Response = Granted | Denied;
 
 type Granted = {
   granted: true;
-  attributes?: string[];
+  filter?: string[];
 };
 
 type Denied = {

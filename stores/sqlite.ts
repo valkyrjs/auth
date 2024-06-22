@@ -28,7 +28,7 @@ export class SQLiteAuth<TPermissions extends Permissions> {
    * @param userId   - User to fetch permissions for.
    */
   async getAccess(tenantId: string, userId: string): Promise<Access<TPermissions>> {
-    return new Access<TPermissions>(this.#permissions, this.#roles, await this.roles.getRoles(tenantId, userId));
+    return new Access<TPermissions>(this.#permissions, await this.roles.getRoles(tenantId, userId));
   }
 }
 

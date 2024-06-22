@@ -13,14 +13,7 @@ const permissions = {
   users: {
     create: true,
     read: new ActionValidator({
-      data: z.array(z.string()),
-      conditions: z.object({
-        attributes: z.array(z.string()),
-      }),
-      validate: (data, conditions) => {
-        return data.every((attr) => conditions.attributes.includes(attr));
-      },
-      error: "Does not have permission to read users",
+      filter: ["name"],
     }),
     update: true,
     delete: true,
@@ -54,9 +47,7 @@ describe("SQLite Auth", () => {
       permissions: {
         users: {
           create: true,
-          read: {
-            attributes: ["name"],
-          },
+          read: true,
         },
       },
     });
@@ -69,9 +60,7 @@ describe("SQLite Auth", () => {
         permissions: {
           users: {
             create: true,
-            read: {
-              attributes: ["name"],
-            },
+            read: true,
           },
         },
       });
@@ -89,9 +78,7 @@ describe("SQLite Auth", () => {
             permissions: {
               users: {
                 create: true,
-                read: {
-                  attributes: ["name"],
-                },
+                read: true,
               },
             },
           },
@@ -117,13 +104,13 @@ describe("SQLite Auth", () => {
 
       assertEquals(access.check("users", "create").granted, true);
       assertEquals(access.check("users", "update").granted, false);
-      assertEquals(access.check("users", "read", []).granted, true);
-      assertObjectMatch(
-        access.check("users", "read", []).filter({
+      assertEquals(access.check("users", "read").granted, true);
+      assertEquals(
+        access.check("users", "read").filter({
           name: "John Doe",
           email: "john.doe@fixture.none",
         }),
-        { name: "John Doe" },
+        { name: "John Doe" } as any,
       );
     });
   });

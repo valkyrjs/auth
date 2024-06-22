@@ -185,8 +185,8 @@ export type Permissions<TPermissions extends Record<string, any> = Record<string
      * An action representing a specific operation or behavior that can be
      * performed on a resource.
      */
-    [TAction in keyof TPermissions[TResource]]: TPermissions[TResource][TAction] extends
-      ActionValidator<infer TData, infer TConditions> ? ActionValidator<TData, TConditions>
+    [TAction in keyof TPermissions[TResource]]: TPermissions[TResource][TAction] extends ActionValidator<any, any>
+      ? ActionValidator<any, any>
       : true;
   };
 };
@@ -221,10 +221,11 @@ export type GetActionConditions<
  * attribute-based control.
  */
 export class ActionValidator<TData extends ZodTypeAny, TConditions extends ZodTypeAny> {
-  readonly data: TData;
-  readonly conditions: TConditions;
-  readonly error: string;
-  readonly validate: ConditionFn<TData, TConditions>;
+  readonly data?: TData;
+  readonly conditions?: TConditions;
+  readonly validate?: ConditionFn<TData, TConditions>;
+  readonly error?: string;
+  readonly filter?: string[];
 
   constructor(
     options: ActionValidatorOptions<TData, TConditions>,
@@ -233,15 +234,17 @@ export class ActionValidator<TData extends ZodTypeAny, TConditions extends ZodTy
     this.conditions = options.conditions;
     this.validate = options.validate;
     this.error = options.error;
+    this.filter = options.filter;
   }
 }
 
-type ActionValidatorOptions<TData extends ZodTypeAny, TConditions extends ZodTypeAny> = {
+type ActionValidatorOptions<TData extends ZodTypeAny, TConditions extends ZodTypeAny> = Partial<{
   data: TData;
   conditions: TConditions;
-  error: string;
   validate: ConditionFn<TData, TConditions>;
-};
+  error: string;
+  filter: string[];
+}>;
 
 /**
  * Condition function used to validate incoming data with the conditions

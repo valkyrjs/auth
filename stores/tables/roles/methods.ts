@@ -45,18 +45,29 @@ async function getRole(roleId: string): Promise<Role<any> | undefined> {
   });
 }
 
-async function getRoles(tenantId: string, userId: string): Promise<any> {
-  const roles = await db.select({ permissions: schema.permissions }).from(schema).innerJoin(
+async function getRoles(tenantId: string, userId: string): Promise<Role<any>[]> {
+  return db.select({
+    roleId: schema.roleId,
+    tenantId: schema.tenantId,
+    name: schema.name,
+    permissions: schema.permissions,
+  }).from(schema).innerJoin(
     roleUsersSchema,
     eq(schema.roleId, roleUsersSchema.roleId),
   ).where(and(
     eq(schema.tenantId, tenantId),
     eq(roleUsersSchema.userId, userId),
-  ));
-  if (roles.length === 0) {
-    return {};
-  }
-  return roles.reduce((permissions, role) => extend(permissions, JSON.parse(role.permissions)), {});
+  )).then((data) => {
+    if (data.length === 0) {
+      return [];
+    }
+    return data.map((role) =>
+      new Role({
+        ...role,
+        permissions: JSON.parse(role.permissions),
+      }, roles)
+    );
+  });
 }
 
 async function getRolesByTenantId(tenantId: string): Promise<Role<any>[]> {
@@ -122,14 +133,11 @@ async function setPermissions(
  |--------------------------------------------------------------------------------
  */
 
-function assign(permissions: RoleData<any>["permissions"], resource: string, action: string, data: any): void {
+function assign(permissions: RoleData<any>["permissions"], resource: string, action: string, conditions: any): void {
   if (permissions[resource] === undefined) {
     permissions[resource] = {};
   }
-  if (permissions[resource]![action] === undefined) {
-    permissions[resource]![action] = {};
-  }
-  permissions[resource]![action] = data ?? true;
+  permissions[resource]![action] = conditions ?? true;
 }
 
 function remove(permissions: RoleData<any>["permissions"], resource: string, action?: string): void {

@@ -1,11 +1,11 @@
 import { Permission } from "./permission.ts";
 import type { Role } from "./role.ts";
-import type { GetActionData, Permissions, Roles } from "./types.ts";
+import type { GetActionData, Permissions } from "./types.ts";
+import { ActionValidator } from "~libraries/types.ts";
 
 export class Access<TPermissions extends Permissions> {
   constructor(
     readonly permissions: TPermissions,
-    readonly roles: Roles<TPermissions>,
     readonly assignments: Role<TPermissions>[],
   ) {}
 
@@ -24,22 +24,28 @@ export class Access<TPermissions extends Permissions> {
     ...[resourceId, actionId, data = undefined]: void extends TData ? [resourceId: TResource, actionId: TAction]
       : [resourceId: TResource, actionId: TAction, data: TData]
   ): boolean {
-    const resource = this.permissions[resourceId];
-    if (resource === undefined) {
-      return false;
-    }
-    const action = resource[actionId];
-    if (action === undefined) {
-      return false;
-    }
-    if (action === true) {
+    const validator = this.#getActionValidator(resourceId, actionId);
+    return this.assignments.some(({ permissions }) => {
+      const resource = permissions[resourceId];
+      if (resource === undefined) {
+        return false;
+      }
+      const action = resource[actionId];
+      if (action === undefined) {
+        return false;
+      }
+      if (action === true) {
+        return true;
+      }
+      if (validator === undefined) {
+        return false;
+      }
+      const isValid = validator.validate?.(data, action);
+      if (isValid === false) {
+        return false;
+      }
       return true;
-    }
-    const isValid = action.validate(data, {});
-    if (isValid === false) {
-      return false;
-    }
-    return true;
+    });
   }
 
   /**
@@ -58,27 +64,60 @@ export class Access<TPermissions extends Permissions> {
     ...[resourceId, actionId, data = undefined]: unknown extends TData ? [resourceId: TResource, actionId: TAction]
       : [resourceId: TResource, actionId: TAction, data: TData]
   ): Permission {
-    const resource = this.permissions[resourceId];
-    if (resource === undefined) {
+    if (this.has(resourceId, actionId, data!) === false) {
       return new Permission({
         granted: false,
-        message: `Session is not allowed to operate on ${String(resourceId)} resource.`,
+        message: this.#getActionError(resourceId, actionId) ?? "Session is missing one, or more access permissions.",
       });
     }
-    const action = resource[actionId];
-    if (action === undefined) {
-      return new Permission({
-        granted: false,
-        message: `Session is not allowed to execute ${String(actionId)} action on ${String(resourceId)} resource.`,
-      });
+    return new Permission({
+      granted: true,
+      filter: this.#getActionFilter(resourceId, actionId),
+    });
+  }
+
+  /**
+   * Get error message defined on the action, or undefined if none has been
+   * added to the action.
+   *
+   * @param resourceId - Resource the action lives under.
+   * @param actionId   - Action the error should be registered under.
+   */
+  #getActionError<TResource extends keyof TPermissions, TAction extends keyof TPermissions[TResource]>(
+    resourceId: TResource,
+    actionId: TAction,
+  ): string | undefined {
+    return this.#getActionValidator(resourceId, actionId)?.error;
+  }
+
+  /**
+   * Get attribute filter defined on the action, or undefined if none has been
+   * added to the action.
+   *
+   * @param resourceId - Resource the action lives under.
+   * @param actionId   - Action the filter should be registered under.
+   */
+  #getActionFilter<TResource extends keyof TPermissions, TAction extends keyof TPermissions[TResource]>(
+    resourceId: TResource,
+    actionId: TAction,
+  ): string[] | undefined {
+    return this.#getActionValidator(resourceId, actionId)?.filter;
+  }
+
+  /**
+   * Get the action validator instance, or undefined if none has been added.
+   *
+   * @param resourceId - Resource the action lives under.
+   * @param actionId   - Action the validator instance should be registered under.
+   */
+  #getActionValidator<TResource extends keyof TPermissions, TAction extends keyof TPermissions[TResource]>(
+    resourceId: TResource,
+    actionId: TAction,
+  ): ActionValidator<any, any> | undefined {
+    const action = this.permissions[resourceId]?.[actionId];
+    if (action === undefined || action === true) {
+      return undefined;
     }
-    if (action === true) {
-      return new Permission({ granted: true });
-    }
-    const isValid = action.validate(data, {});
-    if (isValid === false) {
-      return new Permission({ granted: false, message: action.error });
-    }
-    return new Permission({ granted: true });
+    return action;
   }
 }
