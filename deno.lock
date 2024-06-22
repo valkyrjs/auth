@@ -14,6 +14,7 @@
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:dot-prop@9.0.0": "npm:dot-prop@9.0.0",
       "npm:drizzle-orm@0.30.10": "npm:drizzle-orm@0.30.10",
+      "npm:jose@5.4.1": "npm:jose@5.4.1",
       "npm:nanoid@5.0.7": "npm:nanoid@5.0.7",
       "npm:zod@3.23.8": "npm:zod@3.23.8"
     },
@@ -79,6 +80,10 @@
       },
       "drizzle-orm@0.30.10": {
         "integrity": "sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==",
+        "dependencies": {}
+      },
+      "jose@5.4.1": {
+        "integrity": "sha512-U6QajmpV/nhL9SyfAewo000fkiRQ+Yd2H0lBxJJ9apjpOgkOcBQJWOrMo917lxLptdS/n/o/xPzMkXhF46K8hQ==",
         "dependencies": {}
       },
       "nanoid@5.0.7": {
@@ -240,6 +245,7 @@
       "jsr:@db/sqlite@0.11",
       "npm:dot-prop@9.0.0",
       "npm:drizzle-orm@0.30.10",
+      "npm:jose@5.4.1",
       "npm:nanoid@5.0.7",
       "npm:zod@3.23.8"
     ]
