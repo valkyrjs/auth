@@ -1,46 +1,21 @@
-import { Database } from "sqlite";
-
 import { assertArrayIncludes, assertEquals, assertObjectMatch } from "std/assert/mod.ts";
 import { beforeEach, describe, it } from "std/testing/bdd.ts";
 
 import type { Role } from "~libraries/role.ts";
-import { ActionValidator, type Permissions, type Roles } from "~libraries/types.ts";
 
-import { SQLiteAuth } from "../../stores/sqlite.ts";
-
-const permissions = {
-  users: {
-    create: true,
-    read: new ActionValidator({
-      filter: ["name"],
-    }),
-    update: true,
-    delete: true,
-  },
-} as const satisfies Permissions;
-
-type AppPermissions = typeof permissions;
-
-const roles = {
-  admin: {
-    users: ["create", "read", "update", "delete"],
-  },
-} as const satisfies Roles<AppPermissions>;
-
-/*
- |--------------------------------------------------------------------------------
- | Tests
- |--------------------------------------------------------------------------------
- */
+import type { SQLiteAuth } from "../../stores/sqlite.ts";
+import type { AppPermissions } from "./helpers/permissions.ts";
+import { getSQLiteAuth } from "./helpers/utilities.ts";
 
 describe("SQLite Auth", () => {
-  let auth: SQLiteAuth<AppPermissions>;
-
+  let sqlite: SQLiteAuth<AppPermissions>;
+  let token: string;
   let role: Role<AppPermissions>;
 
   beforeEach(async () => {
-    auth = getAuth();
-    role = await auth.roles.addRole({
+    sqlite = getSQLiteAuth();
+    token = await sqlite.generate("tenant-a", "entity-a");
+    role = await sqlite.roles.addRole({
       tenantId: "tenant-a",
       name: "admin",
       permissions: {
@@ -54,7 +29,7 @@ describe("SQLite Auth", () => {
 
   describe("Roles", () => {
     it("should successfully create a role", async () => {
-      assertObjectMatch((await auth.roles.getRole(role.roleId))!, {
+      assertObjectMatch((await sqlite.roles.getRole(role.roleId))!, {
         name: "admin",
         permissions: {
           users: {
@@ -66,9 +41,9 @@ describe("SQLite Auth", () => {
     });
 
     it("should successfully add a user", async () => {
-      await role.addUser("user-a");
+      await role.addEntity("entity-a");
       assertArrayIncludes(
-        await auth.roles.getRolesByUserId("user-a").then((roles) => roles.map((role) => role.toJSON())),
+        await sqlite.roles.getRolesByUserId("entity-a").then((roles) => roles.map((role) => role.toJSON())),
         [
           {
             roleId: role.roleId,
@@ -86,10 +61,10 @@ describe("SQLite Auth", () => {
     });
 
     it("should successfully add, and remove a user", async () => {
-      await role.addUser("user-a");
-      await role.delUser("user-a");
+      await role.addEntity("entity-a");
+      await role.delEntity("entity-a");
       assertEquals(
-        await auth.roles.getRolesByUserId("user-a").then((roles) => roles.map((role) => role.toJSON())),
+        await sqlite.roles.getRolesByUserId("entity-a").then((roles) => roles.map((role) => role.toJSON())),
         [],
       );
     });
@@ -97,15 +72,15 @@ describe("SQLite Auth", () => {
 
   describe("Access", () => {
     it("should successfully get access instance for user", async () => {
-      await role.addUser("user-a");
+      await role.addEntity("entity-a");
 
-      const access = await auth.getAccess("tenant-a", "user-a");
+      const auth = await sqlite.resolve(token);
 
-      assertEquals(access.check("users", "create").granted, true);
-      assertEquals(access.check("users", "update").granted, false);
-      assertEquals(access.check("users", "read").granted, true);
+      assertEquals(auth.access.check("users", "create").granted, true);
+      assertEquals(auth.access.check("users", "update").granted, false);
+      assertEquals(auth.access.check("users", "read").granted, true);
       assertEquals(
-        access.check("users", "read").filter({
+        auth.access.check("users", "read").filter({
           name: "John Doe",
           email: "john.doe@fixture.none",
         }),
@@ -114,17 +89,3 @@ describe("SQLite Auth", () => {
     });
   });
 });
-
-/*
- |--------------------------------------------------------------------------------
- | Utilities
- |--------------------------------------------------------------------------------
- */
-
-function getAuth() {
-  return new SQLiteAuth<AppPermissions>({
-    database: new Database(":memory:"),
-    permissions,
-    roles,
-  });
-}

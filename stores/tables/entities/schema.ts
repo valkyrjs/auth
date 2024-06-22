@@ -1,12 +1,12 @@
 import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const schema = sqliteTable("valkyr_role_users", {
+export const schema = sqliteTable("valkyr_role_entities", {
   roleId: text("role_id").notNull(),
-  userId: text("user_id").notNull(),
+  entityId: text("entity_id").notNull(),
   conditions: text("conditions").notNull(),
 }, (table) => ({
   roleIdIdx: index("role_id_idx").on(table.roleId),
-  userIdIx: index("user_id_idx").on(table.userId),
+  entityIdIx: index("entity_id_idx").on(table.entityId),
 }));
 
-export type RoleUser = typeof schema.$inferSelect;
+export type Entity = typeof schema.$inferSelect;

@@ -5,8 +5,8 @@ import type { Operation, RoleData, RolePayload, RolePermissions, RoleRepository 
 
 import { db } from "../db.ts";
 import { schema } from "./schema.ts";
-import { schema as roleUsersSchema } from "../role-users/schema.ts";
-import { roleUsers } from "../role-users/methods.ts";
+import { schema as roleUsersSchema } from "../entities/schema.ts";
+import { entities } from "../entities/methods.ts";
 import { Role } from "~libraries/role.ts";
 
 export const roles = {
@@ -15,8 +15,8 @@ export const roles = {
   getRoles,
   getRolesByTenantId,
   getRolesByUserId,
-  addUser: roleUsers.addUser,
-  delUser: roleUsers.delUser,
+  addEntity: entities.addEntity,
+  delEntity: entities.delEntity,
   setPermissions,
 } satisfies RoleRepository<any>;
 
@@ -45,7 +45,7 @@ async function getRole(roleId: string): Promise<Role<any> | undefined> {
   });
 }
 
-async function getRoles(tenantId: string, userId: string): Promise<Role<any>[]> {
+async function getRoles(tenantId: string, entityId: string): Promise<Role<any>[]> {
   return db.select({
     roleId: schema.roleId,
     tenantId: schema.tenantId,
@@ -56,7 +56,7 @@ async function getRoles(tenantId: string, userId: string): Promise<Role<any>[]> 
     eq(schema.roleId, roleUsersSchema.roleId),
   ).where(and(
     eq(schema.tenantId, tenantId),
-    eq(roleUsersSchema.userId, userId),
+    eq(roleUsersSchema.entityId, entityId),
   )).then((data) => {
     if (data.length === 0) {
       return [];
@@ -81,7 +81,7 @@ async function getRolesByTenantId(tenantId: string): Promise<Role<any>[]> {
   );
 }
 
-async function getRolesByUserId(userId: string): Promise<Role<any>[]> {
+async function getRolesByUserId(entityId: string): Promise<Role<any>[]> {
   return db.select({
     roleId: schema.roleId,
     tenantId: schema.tenantId,
@@ -91,7 +91,7 @@ async function getRolesByUserId(userId: string): Promise<Role<any>[]> {
     roleUsersSchema,
     eq(schema.roleId, roleUsersSchema.roleId),
   ).where(
-    eq(roleUsersSchema.userId, userId),
+    eq(roleUsersSchema.entityId, entityId),
   ).then((data) =>
     data.map((role) =>
       new Role({

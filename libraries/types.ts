@@ -27,9 +27,9 @@ export type RoleRepository<TPermissions extends Permissions> = {
    * Get roles for a user under the given tenant.
    *
    * @param tenantId - Tenant the assignment resides under.
-   * @param userId   - User to get permissions for.
+   * @param entityId - Entity to get permissions for.
    */
-  getRoles(tenantId: string, userId: string): Promise<Role<TPermissions>[]>;
+  getRoles(tenantId: string, entityId: string): Promise<Role<TPermissions>[]>;
 
   /**
    * Get all roles created for a specific tenant.
@@ -41,26 +41,26 @@ export type RoleRepository<TPermissions extends Permissions> = {
   /**
    * Get all roles assigned to a specific user.
    *
-   * @param userId - User to retrieve roles for.
+   * @param entityId - Entity to retrieve roles for.
    */
-  getRolesByUserId(userId: string): Promise<Role<TPermissions>[]>;
+  getRolesByUserId(entityId: string): Promise<Role<TPermissions>[]>;
 
   /**
    * Add user to an existing role.
    *
    * @param roleId     - Role to assign the user to.
-   * @param userId     - User to assign to the role.
+   * @param entityId   - Entity to assign to the role.
    * @param conditions - Unique conditions to apply to the role. _(Optional)_
    */
-  addUser(roleId: string, userId: string, conditions?: any): Promise<void>;
+  addEntity(roleId: string, entityId: string, conditions?: any): Promise<void>;
 
   /**
    * Remove a user from an existing role.
    *
-   * @param roleId - Role to remove the user from.
-   * @param userId - User to remove from the role.
+   * @param roleId   - Role to remove the user from.
+   * @param entityId - Entity to remove from the role.
    */
-  delUser(roleId: string, userId: string): Promise<void>;
+  delEntity(roleId: string, entityId: string): Promise<void>;
 
   /**
    * Update a role with the provided grant and ungrant operations.
@@ -69,25 +69,6 @@ export type RoleRepository<TPermissions extends Permissions> = {
    * @param operations - Grant and ungrant operations to execute.
    */
   setPermissions(roleId: string, operations: Operation[]): Promise<RolePermissions<TPermissions>>;
-};
-
-/**
- * A map of role templates.
- */
-export type Roles<TPermissions extends Permissions> = {
-  /**
-   * Name of the role housing a map of resources and a list of actions that can be
-   * performed under the given role.
-   */
-  [role: string]: Partial<
-    {
-      /**
-       * Permission resource assigned to the role and a list of actions within that
-       * resource the role can perform.
-       */
-      [TResource in keyof TPermissions]: (keyof TPermissions[TResource])[];
-    }
-  >;
 };
 
 /**
@@ -124,15 +105,6 @@ export type RoleData<TPermissions extends Permissions> = {
   tenantId: string;
   name: string;
   permissions: RolePermissions<TPermissions>;
-};
-
-export type RoleGrantConfig<
-  TPermissions extends Permissions,
-  TResource extends keyof TPermissions = keyof TPermissions,
-> = {
-  resource: TResource;
-  action: keyof TPermissions[TResource];
-  data?: TPermissions[TResource][keyof TPermissions[TResource]];
 };
 
 /*
@@ -279,18 +251,3 @@ type UnsetOperation = {
   resource: string;
   action?: string;
 };
-
-/*
- |--------------------------------------------------------------------------------
- | Utilities
- |--------------------------------------------------------------------------------
- */
-
-export type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends ((x: infer I) => void) ? I
-  : never;
-
-export type FilterNever<T> = Pick<T, FilterNeverKeys<T>>;
-
-type FilterNeverKeys<T> = {
-  [K in keyof T]: T[K] extends never | Record<string, never> ? never : K;
-}[keyof T];

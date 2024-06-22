@@ -169,13 +169,13 @@ async function createTables(db: Database) {
 
     CREATE INDEX IF NOT EXISTS 'tenant_id_idx' ON 'valkyr_roles' ('tenant_id');
 
-    CREATE TABLE IF NOT EXISTS valkyr_role_users (
+    CREATE TABLE IF NOT EXISTS valkyr_role_entities (
       role_id    TEXT NOT NULL,
-      user_id    TEXT NOT NULL,
+      entity_id  TEXT NOT NULL,
       conditions TEXT NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS 'role_id_idx' ON 'valkyr_role_users' ('role_id');
-    CREATE INDEX IF NOT EXISTS 'user_id_idx' ON 'valkyr_role_users' ('user_id');
+    CREATE INDEX IF NOT EXISTS 'role_id_idx' ON 'valkyr_role_entities' ('role_id');
+    CREATE INDEX IF NOT EXISTS 'entity_id_idx' ON 'valkyr_role_entities' ('entity_id');
   `);
 }

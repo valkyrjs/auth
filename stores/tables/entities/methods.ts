@@ -3,9 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db.ts";
 import { schema } from "./schema.ts";
 
-export const roleUsers = {
-  addUser,
-  delUser,
+export const entities = {
+  addEntity,
+  delEntity,
 } as const;
 
 /*
@@ -14,13 +14,13 @@ export const roleUsers = {
  |--------------------------------------------------------------------------------
  */
 
-async function addUser(roleId: string, userId: string, conditions: any = {}): Promise<void> {
-  await db.insert(schema).values({ roleId, userId, conditions: JSON.stringify(conditions) });
+async function addEntity(roleId: string, entityId: string, conditions: any = {}): Promise<void> {
+  await db.insert(schema).values({ roleId, entityId, conditions: JSON.stringify(conditions) });
 }
 
-async function delUser(roleId: string, userId: string): Promise<void> {
+async function delEntity(roleId: string, entityId: string): Promise<void> {
   await db.delete(schema).where(and(
     eq(schema.roleId, roleId),
-    eq(schema.userId, userId),
+    eq(schema.entityId, entityId),
   ));
 }

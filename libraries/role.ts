@@ -37,12 +37,12 @@ export class Role<TPermissions extends Permissions> {
    |--------------------------------------------------------------------------------
    */
 
-  async addUser(userId: string) {
-    await this.#repository.addUser(this.roleId, userId);
+  async addEntity(entityId: string) {
+    await this.#repository.addEntity(this.roleId, entityId);
   }
 
-  async delUser(userId: string) {
-    await this.#repository.delUser(this.roleId, userId);
+  async delEntity(entityId: string) {
+    await this.#repository.delEntity(this.roleId, entityId);
   }
 
   /*
