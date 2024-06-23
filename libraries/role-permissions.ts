@@ -1,12 +1,13 @@
+import type { Repository } from "./repository.ts";
 import type { Role } from "./role.ts";
-import type { Operation, Permissions, RoleRepository } from "./types.ts";
+import type { Operation, Permissions } from "./types.ts";
 
 export class RolePermission<TPermissions extends Permissions> {
   readonly operations: Operation[] = [];
 
-  readonly #repository: RoleRepository<TPermissions>;
+  readonly #repository: Repository<TPermissions>;
 
-  constructor(readonly role: Role<TPermissions>, repository: RoleRepository<TPermissions>) {
+  constructor(readonly role: Role<TPermissions>, repository: Repository<TPermissions>) {
     this.#repository = repository;
     this.grant = this.grant.bind(this);
     this.deny = this.deny.bind(this);

@@ -172,7 +172,8 @@ async function createTables(db: Database) {
     CREATE TABLE IF NOT EXISTS valkyr_role_entities (
       role_id    TEXT NOT NULL,
       entity_id  TEXT NOT NULL,
-      conditions TEXT NOT NULL
+      conditions TEXT,
+      filters    TEXT
     );
 
     CREATE INDEX IF NOT EXISTS 'role_id_idx' ON 'valkyr_role_entities' ('role_id');

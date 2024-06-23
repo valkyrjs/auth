@@ -1,11 +1,12 @@
 import { importPKCS8, importSPKI, jwtVerify, type KeyLike, SignJWT } from "jose";
 
 import { Access } from "~libraries/access.ts";
-import type { Permissions, RoleRepository } from "~libraries/types.ts";
-
-import { roles } from "./tables/roles/methods.ts";
-import { db } from "./tables/db.ts";
 import { Auth } from "~libraries/auth.ts";
+import type { Repository } from "~libraries/repository.ts";
+import type { Permissions } from "~libraries/types.ts";
+
+import { db } from "./tables/db.ts";
+import { repository } from "./tables/mod.ts";
 
 export class SQLiteAuth<TPermissions extends Permissions> {
   readonly #permissions: TPermissions;
@@ -23,8 +24,8 @@ export class SQLiteAuth<TPermissions extends Permissions> {
   /**
    * Get access to the auth roles repository.
    */
-  get roles(): RoleRepository<TPermissions> {
-    return roles as unknown as RoleRepository<TPermissions>;
+  get roles(): Repository<TPermissions> {
+    return repository as unknown as Repository<TPermissions>;
   }
 
   /**

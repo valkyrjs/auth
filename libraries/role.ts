@@ -1,5 +1,6 @@
+import type { Repository } from "./repository.ts";
 import { RolePermission } from "./role-permissions.ts";
-import type { Permissions, RoleData, RolePermissions, RoleRepository } from "./types.ts";
+import type { Permissions, RoleData, RoleEntityAssignments, RolePermissions } from "./types.ts";
 
 export class Role<TPermissions extends Permissions> {
   readonly roleId: string;
@@ -7,9 +8,9 @@ export class Role<TPermissions extends Permissions> {
   readonly name: string;
   readonly permissions: RolePermissions<TPermissions>;
 
-  readonly #repository: RoleRepository<TPermissions>;
+  readonly #repository: Repository<TPermissions>;
 
-  constructor(data: RoleData<TPermissions>, repository: RoleRepository<TPermissions>) {
+  constructor(data: RoleData<TPermissions>, repository: Repository<TPermissions>) {
     this.roleId = data.roleId;
     this.tenantId = data.tenantId;
     this.name = data.name;
@@ -37,8 +38,8 @@ export class Role<TPermissions extends Permissions> {
    |--------------------------------------------------------------------------------
    */
 
-  async addEntity(entityId: string) {
-    await this.#repository.addEntity(this.roleId, entityId);
+  async addEntity(entityId: string, assignments?: RoleEntityAssignments<TPermissions>) {
+    await this.#repository.addEntity(this.roleId, entityId, assignments);
   }
 
   async delEntity(entityId: string) {

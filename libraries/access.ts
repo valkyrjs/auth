@@ -1,6 +1,6 @@
 import { Permission } from "./permission.ts";
 import type { Role } from "./role.ts";
-import type { GetActionData, Permissions } from "./types.ts";
+import type { GetActionValidatorData, Permissions } from "./types.ts";
 import type { ActionValidator } from "~libraries/types.ts";
 
 export class Access<TPermissions extends Permissions> {
@@ -19,32 +19,59 @@ export class Access<TPermissions extends Permissions> {
   has<
     TResource extends keyof TPermissions,
     TAction extends keyof TPermissions[TResource],
-    TData extends GetActionData<TPermissions, TResource, TAction>,
+    TData extends GetActionValidatorData<TPermissions, TResource, TAction>,
   >(
     ...[resourceId, actionId, data = undefined]: void extends TData ? [resourceId: TResource, actionId: TAction]
       : [resourceId: TResource, actionId: TAction, data: TData]
   ): boolean {
     const validator = this.#getActionValidator(resourceId, actionId);
+
+    // ### Validate Assignments
+    // Loop through all the roles assigned to the requesting entity. If any
+    // of the roles returns 'true' then permission check is 'true'.
+
     return this.assignments.some(({ permissions }) => {
       const resource = permissions[resourceId];
       if (resource === undefined) {
         return false;
       }
+
+      // ### Action Check
+      // If the action is 'undefined' permission is rejected, our logic runs
+      // with negative default, making the abscense of a action 'false'. If
+      // the value of the action is explicitly 'true', permission is granted.
+
       const action = resource[actionId];
       if (action === undefined) {
         return false;
       }
+
       if (action === true) {
         return true;
       }
-      if (validator === undefined) {
+
+      // ### Validator Check
+      // If the action is a validator, and the action contains the expected
+      // 'conditions' key. We run the validate method with the incoming data,
+      // and permission conditions.
+
+      if (validator !== undefined) {
+        if ("conditions" in action === true && validator.validate(data, action.conditions) === true) {
+          return true;
+        }
         return false;
       }
-      const isValid = validator.validate?.(data, action);
-      if (isValid === false) {
-        return false;
+
+      // ### Filter Check
+      // If a validator is not present we do a check to see if a filter has
+      // been assigned to the action. A 'filter' present along with the
+      // abscense of a 'validator' is considered true.
+
+      if ("filter" in action) {
+        return true;
       }
-      return true;
+
+      return false;
     });
   }
 
@@ -59,7 +86,7 @@ export class Access<TPermissions extends Permissions> {
   check<
     TResource extends keyof TPermissions,
     TAction extends keyof TPermissions[TResource],
-    TData extends GetActionData<TPermissions, TResource, TAction>,
+    TData extends GetActionValidatorData<TPermissions, TResource, TAction>,
   >(
     ...[resourceId, actionId, data = undefined]: unknown extends TData ? [resourceId: TResource, actionId: TAction]
       : [resourceId: TResource, actionId: TAction, data: TData]
@@ -101,11 +128,33 @@ export class Access<TPermissions extends Permissions> {
     resourceId: TResource,
     actionId: TAction,
   ): string[] | undefined {
-    return this.#getActionValidator(resourceId, actionId)?.filter;
+    let fallback = true;
+
+    const filter = new Set<string>();
+    for (const assignment of this.assignments) {
+      const action = assignment.permissions[resourceId]?.[actionId];
+      if (action === undefined || action === true) {
+        continue;
+      }
+      if ("filter" in action) {
+        action.filter.forEach(filter.add, filter);
+        fallback = false;
+      }
+    }
+
+    if (fallback === false) {
+      return Array.from(filter);
+    }
+
+    const action = this.permissions[resourceId]?.[actionId];
+    if (action === undefined || action === true) {
+      return undefined;
+    }
+    return action.filter?.filter;
   }
 
   /**
-   * Get the action validator instance, or undefined if none has been added.
+   * Get the action validator, or filter instance, or undefined if none has been added.
    *
    * @param resourceId - Resource the action lives under.
    * @param actionId   - Action the validator instance should be registered under.
@@ -118,6 +167,6 @@ export class Access<TPermissions extends Permissions> {
     if (action === undefined || action === true) {
       return undefined;
     }
-    return action;
+    return action.validator;
   }
 }

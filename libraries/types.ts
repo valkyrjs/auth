@@ -1,75 +1,10 @@
 import type { TypeOf, ZodTypeAny } from "zod";
 
-import type { Role } from "~libraries/role.ts";
-
 /*
  |--------------------------------------------------------------------------------
  | Roles
  |--------------------------------------------------------------------------------
  */
-
-export type RoleRepository<TPermissions extends Permissions> = {
-  /**
-   * Add a new role to the persistence storage.
-   *
-   * @param payload - Role to add to the database.
-   */
-  addRole(payload: RolePayload<TPermissions>): Promise<Role<TPermissions>>;
-
-  /**
-   * Get a role from the persisted storage.
-   *
-   * @param roleId - Role id to get from the database.
-   */
-  getRole(roleId: string): Promise<Role<TPermissions> | undefined>;
-
-  /**
-   * Get roles for a user under the given tenant.
-   *
-   * @param tenantId - Tenant the assignment resides under.
-   * @param entityId - Entity to get permissions for.
-   */
-  getRoles(tenantId: string, entityId: string): Promise<Role<TPermissions>[]>;
-
-  /**
-   * Get all roles created for a specific tenant.
-   *
-   * @param tenantId - Tenant to retrieve roles for.
-   */
-  getRolesByTenantId(tenantId: string): Promise<Role<TPermissions>[]>;
-
-  /**
-   * Get all roles assigned to a specific user.
-   *
-   * @param entityId - Entity to retrieve roles for.
-   */
-  getRolesByUserId(entityId: string): Promise<Role<TPermissions>[]>;
-
-  /**
-   * Add user to an existing role.
-   *
-   * @param roleId     - Role to assign the user to.
-   * @param entityId   - Entity to assign to the role.
-   * @param conditions - Unique conditions to apply to the role. _(Optional)_
-   */
-  addEntity(roleId: string, entityId: string, conditions?: any): Promise<void>;
-
-  /**
-   * Remove a user from an existing role.
-   *
-   * @param roleId   - Role to remove the user from.
-   * @param entityId - Entity to remove from the role.
-   */
-  delEntity(roleId: string, entityId: string): Promise<void>;
-
-  /**
-   * Update a role with the provided grant and ungrant operations.
-   *
-   * @param roleId     - Role id to update.
-   * @param operations - Grant and ungrant operations to execute.
-   */
-  setPermissions(roleId: string, operations: Operation[]): Promise<RolePermissions<TPermissions>>;
-};
 
 /**
  * Role permissions creates a map of resource action values. Mapping conditional
@@ -88,7 +23,47 @@ export type RolePermissions<TPermissions extends Permissions> = Partial<
          * conditional value, or true.
          */
         [TAction in keyof TPermissions[TResource]]: TPermissions[TResource][TAction] extends
-          { conditions: infer TConditions } ? TConditions extends ZodTypeAny ? TypeOf<TConditions> : never : true;
+          { validator: ActionValidator<any, infer TConditions> }
+          ? TPermissions[TResource][TAction] extends { filter: ActionFilter<infer TFilter> } ? {
+              validator: TypeOf<TConditions>;
+              filter: TFilter;
+            }
+          : {
+            conditions: TypeOf<TConditions>;
+          }
+          : TPermissions[TResource][TAction] extends { filter: ActionFilter<infer TFilter> } ? {
+              filter: TFilter;
+            }
+          : true;
+      }
+    >;
+  }
+>;
+
+export type RoleEntityAssignments<TPermissions extends Permissions = Permissions> = Partial<
+  {
+    conditions?: EntityConditions<TPermissions>;
+    filters?: EntityFilters<TPermissions>;
+  }
+>;
+
+export type EntityConditions<TPermissions extends Permissions> = Partial<
+  {
+    [TResource in keyof TPermissions]: Partial<
+      {
+        [TAction in keyof TPermissions[TResource]]: TPermissions[TResource][TAction] extends
+          { validator: ActionValidator<any, infer TConditions> } ? TypeOf<TConditions> : void;
+      }
+    >;
+  }
+>;
+
+export type EntityFilters<TPermissions extends Permissions> = Partial<
+  {
+    [TResource in keyof TPermissions]: Partial<
+      {
+        [TAction in keyof TPermissions[TResource]]: TPermissions[TResource][TAction] extends
+          { filter: ActionFilter<infer TFilter> } ? TFilter : void;
       }
     >;
   }
@@ -116,10 +91,10 @@ export type RoleData<TPermissions extends Permissions> = {
 /**
  * Permission defines a structure for managing access control within an application.
  * It combines Role-Based Access Control (RBAC) with Attribute-Based Access Control
- * (ABAC) elements, allowing for flexible and granular control over user permissions.
+ * (ABAC) elements, allowing for flexible and granular control over entity permissions.
  *
  * In this model, roles are configured separately from the permissions and are used
- * to compile a comprehensive permission set for each user request. This allows the
+ * to compile a comprehensive permission set for each entity request. This allows the
  * system to evaluate combined permissions dynamically.
  *
  * The conditions in this structure represent specific attributes or constraints for
@@ -157,9 +132,10 @@ export type Permissions<TPermissions extends Record<string, any> = Record<string
      * An action representing a specific operation or behavior that can be
      * performed on a resource.
      */
-    [TAction in keyof TPermissions[TResource]]: TPermissions[TResource][TAction] extends ActionValidator<any, any>
-      ? ActionValidator<any, any>
-      : true;
+    [TAction in keyof TPermissions[TResource]]: {
+      validator?: ActionValidator<any, any>;
+      filter?: ActionFilter<any>;
+    } | true;
   };
 };
 
@@ -169,11 +145,11 @@ export type Permissions<TPermissions extends Record<string, any> = Record<string
  * For an action that has conditional configuration the defined data key is
  * returned, else void is presented.
  */
-export type GetActionData<
+export type GetActionValidatorData<
   TPermissions extends Permissions,
   TResource extends keyof TPermissions,
   TAction extends keyof TPermissions[TResource],
-> = TPermissions[TResource][TAction] extends { data: infer TData extends ZodTypeAny } ? TypeOf<TData> : void;
+> = TPermissions[TResource][TAction] extends { validator: ActionValidator<infer TData, any> } ? TypeOf<TData> : void;
 
 /**
  * Retrieve the conditions defined on the given resource action.
@@ -181,42 +157,42 @@ export type GetActionData<
  * For an action that has conditional configuration the defined conditions key is
  * returned, else void is presented.
  */
-export type GetActionConditions<
+export type GetActionValidatorConditions<
   TPermissions extends Permissions,
   TResource extends keyof TPermissions,
   TAction extends keyof TPermissions[TResource],
-> = TPermissions[TResource][TAction] extends { conditions: infer TConditions extends ZodTypeAny } ? TypeOf<TConditions>
+> = TPermissions[TResource][TAction] extends { validator: ActionValidator<any, infer TConditions> }
+  ? TypeOf<TConditions>
   : void;
+
+export class ActionFilter<TFilter extends string[]> {
+  constructor(readonly filter: TFilter) {}
+}
 
 /**
  * Conditions under which an action can be performed, allowing for detailed
  * attribute-based control.
  */
 export class ActionValidator<TData extends ZodTypeAny, TConditions extends ZodTypeAny> {
-  readonly data?: TData;
-  readonly conditions?: TConditions;
-  readonly validate?: ConditionFn<TData, TConditions>;
-  readonly error?: string;
-  readonly filter?: string[];
+  readonly data: TData;
+  readonly conditions: TConditions;
+  readonly validate: ConditionFn<TData, TConditions>;
+  readonly error: string;
 
   constructor(
-    options: ActionValidatorOptions<TData, TConditions>,
+    options: {
+      data: TData;
+      conditions: TConditions;
+      validate: ConditionFn<TData, TConditions>;
+      error: string;
+    },
   ) {
     this.data = options.data;
     this.conditions = options.conditions;
     this.validate = options.validate;
     this.error = options.error;
-    this.filter = options.filter;
   }
 }
-
-type ActionValidatorOptions<TData extends ZodTypeAny, TConditions extends ZodTypeAny> = Partial<{
-  data: TData;
-  conditions: TConditions;
-  validate: ConditionFn<TData, TConditions>;
-  error: string;
-  filter: string[];
-}>;
 
 /**
  * Condition function used to validate incoming data with the conditions
