@@ -5,3 +5,34 @@
 # Auth
 
 Authentication and Access Control solution for full stack TypeScript applications.
+
+## Quick Start
+
+```ts
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { Database } from "bun:sqlite";
+
+import { ActionFilter, type Permissions, SQLiteAuth } from "@valkyr/auth/sqlite";
+
+const permissions = {
+  account: {
+    read: {
+      filter: new ActionFilter(["entityId", "email"]),
+    },
+    update: true,
+  },
+} as const satisfies Permissions;
+
+export const auth = new SQLiteAuth({
+  database: new Database(":memory:"),
+  permissions,
+  auth: {
+    algorithm: "RS256",
+    privateKey: await readFile(join(__dirname, ".keys", "private"), "utf-8"),
+    publicKey: await readFile(join(__dirname, ".keys", "public"), "utf-8"),
+    issuer: "https://valkyrjs.com",
+    audience: "https://valkyrjs.com",
+  },
+});
+```
