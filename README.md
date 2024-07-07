@@ -13,7 +13,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Database } from "bun:sqlite";
 
-import { ActionFilter, type Permissions, SQLiteAuth } from "@valkyr/auth/sqlite";
+import { SQLiteAuth } from "@valkyr/auth/sqlite";
+import { ActionFilter, type Permissions } from "@valkyr/auth";
 
 const permissions = {
   account: {
