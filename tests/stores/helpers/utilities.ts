@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { Database } from "sqlite";
 
-import { SQLiteAuth } from "../../../stores/sqlite.ts";
+import { SQLiteAuth } from "../../../stores/sqlite/auth.ts";
 import { type AppPermissions, permissions } from "./permissions.ts";
 
 export function getSQLiteAuth() {

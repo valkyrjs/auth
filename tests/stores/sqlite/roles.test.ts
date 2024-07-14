@@ -3,7 +3,7 @@ import { beforeEach, describe, it } from "std/testing/bdd.ts";
 
 import type { Role } from "~libraries/role.ts";
 
-import type { SQLiteAuth } from "../../../stores/sqlite.ts";
+import type { SQLiteAuth } from "../../../stores/sqlite/auth.ts";
 import type { AppPermissions } from "../helpers/permissions.ts";
 import { getSQLiteAuth } from "../helpers/utilities.ts";
 
