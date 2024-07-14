@@ -36,37 +36,52 @@
  */
 
 import { importPKCS8, importSPKI, jwtVerify, type KeyLike, SignJWT } from "jose";
+import type { Database as SQLiteDatabase } from "jsr:@db/sqlite@0.11";
 
 import { Access } from "~libraries/access.ts";
 import { Auth } from "~libraries/auth.ts";
-import type { Repository } from "~libraries/repository.ts";
 import type { Permissions } from "~libraries/types.ts";
+import type { Database } from "~utilities/database.ts";
 
-import { db } from "./tables/db.ts";
-import { repository } from "./tables/mod.ts";
+import { type AuthDB, makeAuthDatabase } from "./database.ts";
+import { EntityProvider } from "./entities/methods.ts";
+import { RoleProvider } from "./roles/methods.ts";
 
 /**
  * Provides a solution to manage user authentication and access control rights within an
  * application.
  */
 export class SQLiteAuth<TPermissions extends Permissions> {
+  readonly #database: Database<AuthDB>;
   readonly #permissions: TPermissions;
   readonly #auth: Config<TPermissions>["auth"];
+
+  readonly entities: EntityProvider;
+  readonly roles: RoleProvider<TPermissions>;
 
   #secret?: KeyLike;
   #pubkey?: KeyLike;
 
   constructor(config: Config<TPermissions>) {
+    this.#database = makeAuthDatabase(config.database);
     this.#permissions = config.permissions;
     this.#auth = config.auth;
-    db.instance = config.database;
+
+    this.entities = new EntityProvider(this.db);
+    this.roles = new RoleProvider(this.db, this.entities);
   }
 
-  /**
-   * Get access to the auth roles repository.
+  /*
+   |--------------------------------------------------------------------------------
+   | Accessors
+   |--------------------------------------------------------------------------------
    */
-  get roles(): Repository<TPermissions> {
-    return repository as unknown as Repository<TPermissions>;
+
+  /**
+   * Access the auth database instance.
+   */
+  get db(): AuthDB {
+    return this.#database.instance;
   }
 
   /**
@@ -100,6 +115,12 @@ export class SQLiteAuth<TPermissions extends Permissions> {
       }
     });
   }
+
+  /*
+   |--------------------------------------------------------------------------------
+   | Utilities
+   |--------------------------------------------------------------------------------
+   */
 
   /**
    * Generates a new access token from the given tenant and entity ids.
@@ -147,7 +168,7 @@ export class SQLiteAuth<TPermissions extends Permissions> {
  */
 
 type Config<TPermissions extends Permissions> = {
-  database: any;
+  database: SQLiteDatabase;
   permissions: TPermissions;
   auth: {
     algorithm: string;

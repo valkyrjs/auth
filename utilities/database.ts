@@ -1,23 +1,10 @@
-import { type BunSQLiteDatabase, drizzle } from "drizzle-orm/bun-sqlite";
-import type { Database } from "sqlite";
+export class Database<TAdapter extends DrizzleAdapter> {
+  #hooks: Hooks;
 
-let instance: BunSQLiteDatabase | undefined;
-
-export const db = {
-  set instance(db: Database) {
-    instance = drizzle(db);
-    createTables(db);
-  },
-
-  /**
-   * Drizzle instance for the database.
-   */
-  get instance(): BunSQLiteDatabase {
-    if (instance === undefined) {
-      throw new Error("Event Store: Database instance has not been resolved!");
-    }
-    return instance;
-  },
+  constructor(readonly instance: TAdapter, hooks: Hooks) {
+    this.#hooks = hooks;
+    this.close = this.close.bind(this);
+  }
 
   /**
    * Creates an insert query.
@@ -43,9 +30,9 @@ export const db = {
    *   .returning();
    * ```
    */
-  get insert() {
+  get insert(): TAdapter["insert"] {
     return this.instance.insert.bind(this.instance);
-  },
+  }
 
   /**
    * Creates a select query.
@@ -83,9 +70,9 @@ export const db = {
    *   .from(cars);
    * ```
    */
-  get select() {
+  get select(): TAdapter["select"] {
     return this.instance.select.bind(this.instance);
-  },
+  }
 
   /**
    * Creates an insert query.
@@ -111,9 +98,9 @@ export const db = {
    *   .returning();
    * ```
    */
-  get update() {
+  get update(): TAdapter["update"] {
     return this.instance.update.bind(this.instance);
-  },
+  }
 
   /**
    * Creates a delete query.
@@ -140,43 +127,31 @@ export const db = {
    *   .returning();
    * ```
    */
-  get delete() {
+  get delete(): TAdapter["delete"] {
     return this.instance.delete.bind(this.instance);
-  },
+  }
 
   /**
-   * Closes the client connection.
+   * Disconnect the client and remove the instance.
    */
-  close() {
-    instance = undefined;
-  },
-} as const;
+  async close() {
+    await this.#hooks.onCloseInstance();
+  }
+}
 
 /*
  |--------------------------------------------------------------------------------
- | Bootstrap
+ | Types
  |--------------------------------------------------------------------------------
  */
 
-async function createTables(db: Database) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS valkyr_roles (
-      role_id     TEXT PRIMARY KEY,
-      tenant_id   TEXT NOT NULL,
-      name        TEXT NOT NULL,
-      permissions TEXT NOT NULL
-    );
+type Hooks = {
+  onCloseInstance(): Promise<void>;
+};
 
-    CREATE INDEX IF NOT EXISTS 'tenant_id_idx' ON 'valkyr_roles' ('tenant_id');
-
-    CREATE TABLE IF NOT EXISTS valkyr_role_entities (
-      role_id    TEXT NOT NULL,
-      entity_id  TEXT NOT NULL,
-      conditions TEXT,
-      filters    TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS 'role_id_idx' ON 'valkyr_role_entities' ('role_id');
-    CREATE INDEX IF NOT EXISTS 'entity_id_idx' ON 'valkyr_role_entities' ('entity_id');
-  `);
-}
+type DrizzleAdapter = {
+  insert: any;
+  select: any;
+  update: any;
+  delete: any;
+};

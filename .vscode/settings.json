@@ -1,13 +1,21 @@
 {
   "deno.enable": true,
+  "deno.lint": true,
+  "eslint.nodePath": "./.eslint/node_modules",
+  "eslint.options": {
+    "overrideConfigFile": "./.eslint/eslint.config.mjs"
+  },
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "denoland.vscode-deno",
-  "emeraldwalk.runonsave": {
-    "commands": [
-      {
-        "match": "\\.ts$",
-        "cmd": "deno lint ${file} --fix"
-      }
-    ]
-  }
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[typescript]": { 
+    "editor.defaultFormatter": "denoland.vscode-deno" 
+  },
+  "json.schemas": [
+    {
+      "fileMatch": ["/**/events/*.json"],
+      "url": "./schemas/event.json"
+    }
+  ],
 }
