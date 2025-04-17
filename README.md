@@ -9,31 +9,67 @@ Authentication and Access Control solution for full stack TypeScript application
 ## Quick Start
 
 ```ts
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs/promises";
 import { join } from "node:path";
-import { Database } from "bun:sqlite";
 
-import { SQLiteAuth } from "@valkyr/auth/sqlite";
-import { ActionFilter, type Permissions } from "@valkyr/auth";
+import { Auth, Guard } from "@valkyr/auth";
+import { z } from "zod";
 
-const permissions = {
-  account: {
-    read: {
-      filter: new ActionFilter(["entityId", "email"]),
-    },
-    update: true,
-  },
-} as const satisfies Permissions;
+import { RolesProvider } from "./roles-provider.ts";
 
-export const auth = new SQLiteAuth({
-  database: new Database(":memory:"),
-  permissions,
-  auth: {
+const auth = new Auth({
+  settings: {
     algorithm: "RS256",
-    privateKey: await readFile(join(__dirname, ".keys", "private"), "utf-8"),
-    publicKey: await readFile(join(__dirname, ".keys", "public"), "utf-8"),
+    privateKey: readFileSync(join(import.meta.dirname!, "keys", "private"), "utf-8"),
+    publicKey: readFileSync(join(import.meta.dirname!, "keys", "public"), "utf-8"),
     issuer: "https://valkyrjs.com",
     audience: "https://valkyrjs.com",
   },
+  session: z.object({
+    accountId: z.string(),
+  }),
+  permissions: {
+    account: ["create", "read", "update", "delete"],
+  } as const,
+  guards: [
+    new Guard("account:own", {
+      input: z.object({ accountId: z.string() }),
+      check: async ({ accountId }) => {
+        return accountId === req.session.accountId;
+      },
+    }),
+  ],
+}, {
+  roles: new RolesProvider(),
 });
+```
+
+### Generate a Session
+
+```ts
+import { auth } from "./auth.ts";
+
+const token = await auth.generate({ accountId: "xyz" });
+```
+
+### Resolve a Session
+
+Following example shows how to resolve a session, then use the sessions access control `.has` method, then execute a guard `.check`.
+
+```ts
+import { auth } from "./auth.ts";
+
+const session = await auth.resolve("token");
+
+if (session.valid === false) {
+  throw new Error(session.message);
+}
+
+if (session.has("account", "update") === false) {
+  throw new Error("Not allowed to update accounts");
+}
+
+if ((await auth.guard("account:own", { accountId: session.accountId })) === false) {
+  throw new Error("Not allowed to edit this account");
+}
 ```

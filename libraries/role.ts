@@ -1,84 +1,62 @@
-import type { Repository } from "./repository.ts";
-import { RolePermission } from "./role-permissions.ts";
-import type { Permissions, RoleData, RoleEntityAssignments, RolePermissions } from "./types.ts";
+import type { PartialPermissions, Permissions } from "./permissions.ts";
 
 export class Role<TPermissions extends Permissions> {
-  readonly roleId: string;
-  readonly tenantId: string;
+  readonly id: string;
   readonly name: string;
-  readonly permissions: RolePermissions<TPermissions>;
+  readonly permissions: PartialPermissions<TPermissions>;
 
-  readonly #repository: Repository<TPermissions>;
+  declare readonly $inferData: RoleData<Permissions>;
 
-  constructor(data: RoleData<TPermissions>, repository: Repository<TPermissions>) {
-    this.roleId = data.roleId;
-    this.tenantId = data.tenantId;
+  constructor(data: RoleData<TPermissions>) {
+    this.id = data.id;
     this.name = data.name;
     this.permissions = data.permissions;
-    this.#repository = repository;
   }
 
-  /*
-   |--------------------------------------------------------------------------------
-   | Permissions
-   |--------------------------------------------------------------------------------
-   */
-
   get grant(): RolePermission<TPermissions>["grant"] {
-    return new RolePermission<TPermissions>(this, this.#repository).grant;
+    return new RolePermission<TPermissions>(this).grant;
   }
 
   get deny(): RolePermission<TPermissions>["deny"] {
-    return new RolePermission<TPermissions>(this, this.#repository).deny;
+    return new RolePermission<TPermissions>(this).deny;
+  }
+}
+
+export class RolePermission<TPermissions extends Permissions> {
+  readonly #operations: Operation[] = [];
+
+  constructor(readonly role: Role<TPermissions>) {
+    this.grant = this.grant.bind(this);
+    this.deny = this.deny.bind(this);
   }
 
-  /*
-   |--------------------------------------------------------------------------------
-   | Accounts
-   |--------------------------------------------------------------------------------
+  /**
+   * List of operations to perform on role permissions.
    */
-
-  async addEntity(entityId: string, assignments?: RoleEntityAssignments<TPermissions>) {
-    await this.#repository.addEntity(this.roleId, entityId, assignments);
+  get operations(): Operation[] {
+    return this.#operations;
   }
 
-  async delEntity(entityId: string) {
-    await this.#repository.delEntity(this.roleId, entityId);
-  }
-
-  /*
-   |--------------------------------------------------------------------------------
-   | Methods
-   |--------------------------------------------------------------------------------
+  /**
+   * Grant action to the provided resource.
+   *
+   * @param resource - Resource to grant action for.
+   * @param action   - Action to grant for the resource.
    */
-
-  update({ name, permissions }: UpdatePayload<TPermissions>): Role<TPermissions> {
-    return new Role({
-      roleId: this.roleId,
-      tenantId: this.tenantId,
-      name: name ?? this.name,
-      permissions: permissions ?? this.permissions,
-    }, this.#repository);
+  grant<TResource extends keyof TPermissions, TAction extends TPermissions[TResource][number]>(resource: TResource, action: TAction): this {
+    this.#operations.push({ type: "set", resource, action });
+    return this;
   }
 
-  /*
-   |--------------------------------------------------------------------------------
-   | Serializers
-   |--------------------------------------------------------------------------------
+  /**
+   * Deny action for the provided resource.
+   *
+   * @param resource - Resource to deny action for.
+   * @param action   - Action to deny on the resource.
    */
-
-  toJSON(): {
-    roleId: string;
-    tenantId: string;
-    name: string;
-    permissions: RolePermissions<TPermissions>;
-  } {
-    return {
-      roleId: this.roleId,
-      tenantId: this.tenantId,
-      name: this.name,
-      permissions: this.permissions,
-    };
+  deny<TResource extends keyof TPermissions, TAction extends TPermissions[TResource][number]>(resource: TResource, action?: TAction): this {
+    this.#operations.push({ type: "unset", resource, action } as any);
+    return this;
   }
 }
 
@@ -88,7 +66,67 @@ export class Role<TPermissions extends Permissions> {
  |--------------------------------------------------------------------------------
  */
 
-type UpdatePayload<TPermissions extends Permissions> = {
-  name?: string;
-  permissions?: RolePermissions<TPermissions>;
+export type RolesProvider<TPermissions extends Permissions, TSession> = {
+  /**
+   * Add a new role to the providers storage.
+   *
+   * @param role - Role to add.
+   */
+  add(role: RoleData<TPermissions>): Promise<void>;
+
+  /**
+   * Get a role by its id.
+   *
+   * @param roleId - Role to retrieve.
+   */
+  getById(roleId: string): Promise<RoleData<TPermissions> | undefined>;
+
+  /**
+   * Get a list of roles related to a session.
+   *
+   * @param session - Session to retrieve roles for.
+   */
+  getBySession(session: TSession): Promise<RoleData<TPermissions>[]>;
+
+  /**
+   * Set permissions on a role with the given list of patch operations.
+   *
+   * @param roleId     - Role to set permissions for.
+   * @param operations - Patch operations to execute on the providers storage.
+   */
+  setPermissions(roleId: string, operations: Operation[]): Promise<void>;
+
+  /**
+   * Role to delete.
+   *
+   * @param roleId - Role to delete from providers storage.
+   */
+  delete(roleId: string): Promise<void>;
+};
+
+export type RoleData<TPermissions extends Permissions> = {
+  id: string;
+  name: string;
+  permissions: PartialPermissions<TPermissions>;
+};
+
+/**
+ * Type defenitions detailing the operation structure of updating a roles
+ * permissions layers. This provides the ability for service providers to take
+ * a operation set and create its own insert logic.
+ */
+type Operation =
+  | SetOperation
+  | UnsetOperation;
+
+type SetOperation = {
+  type: "set";
+  resource: any;
+  action: any;
+};
+
+type UnsetOperation = {
+  type: "unset";
+  resource: any;
+  action?: any;
 };
