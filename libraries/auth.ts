@@ -71,7 +71,7 @@ export class Auth<
   #pubkey?: KeyObject;
 
   declare readonly $inferPermissions: TPermissions;
-  declare readonly $inferSession: TSession;
+  declare readonly $inferSession: SessionResolution<TSession, TPermissions>;
 
   constructor(config: Config<TPermissions, TZodSession, TGuard>, providers: TProviders) {
     this.#settings = config.settings;
