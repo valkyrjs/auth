@@ -70,8 +70,8 @@ export class Auth<
   #secret?: KeyObject;
   #pubkey?: KeyObject;
 
-  declare readonly $inferPermissions: TPermissions;
-  declare readonly $inferSession: SessionResolution<TSession, TPermissions>;
+  declare readonly $permissions: TPermissions;
+  declare readonly $session: TSession;
 
   constructor(config: Config<TPermissions, TZodSession, TGuard>, providers: TProviders) {
     this.#settings = config.settings;
@@ -287,7 +287,9 @@ type Providers<TPermissions extends Permissions, TSession> = {
   roles: RolesProvider<TPermissions, TSession>;
 };
 
-type SessionResolution<TSession, TPermissions extends Permissions> =
+export type ResolvedSession<TAuth extends AnyAuth> = Extract<SessionResolution<TAuth["$session"], TAuth["$permissions"]>, { valid: true }>;
+
+export type SessionResolution<TSession, TPermissions extends Permissions> =
   | ({
       valid: true;
     } & TSession & {
@@ -307,3 +309,5 @@ type SessionResolution<TSession, TPermissions extends Permissions> =
     };
 
 type ZodSession = ZodObject | ZodUnion<ZodObject[]> | ZodDiscriminatedUnion<ZodObject[]>;
+
+type AnyAuth = Auth<any, any, any, any, any>;

@@ -1,29 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { assertEquals, assertNotEquals, assertObjectMatch } from "@std/assert";
 import { describe, it } from "@std/testing/bdd";
 
-import { Auth } from "../libraries/auth.ts";
-import { guards } from "./mocks/guard.ts";
-import { permissions } from "./mocks/permissions.ts";
-import { mockRolesProvider } from "./mocks/providers/roles.ts";
-import { session } from "./mocks/session.ts";
-
-const auth = new Auth({
-  settings: {
-    algorithm: "RS256",
-    privateKey: readFileSync(join(import.meta.dirname!, "keys", "private"), "utf-8"),
-    publicKey: readFileSync(join(import.meta.dirname!, "keys", "public"), "utf-8"),
-    issuer: "https://valkyrjs.com",
-    audience: "https://valkyrjs.com",
-  },
-  session,
-  permissions,
-  guards,
-}, {
-  roles: mockRolesProvider,
-});
+import { auth } from "./mocks/auth.ts";
 
 describe("Auth", () => {
   it("should sign a session", async () => {
